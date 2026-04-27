@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poppo Agency Cash & Points Calculator</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 10px; }
+        .card { background: white; width: 100%; max-width: 950px; margin: auto; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-top: 6px solid #1a73e8; }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 15px; }
+        .setup-row { display: flex; gap: 10px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; flex-wrap: wrap; border: 1px solid #ddd; }
+        .input-group { flex: 1; min-width: 130px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #333; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .table-container { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
+        th { background-color: #2c3e50; color: white; padding: 10px; text-align: center; }
+        td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        input.table-input { width: 75px; padding: 5px; border: 1px solid #1a73e8; border-radius: 4px; text-align: center; }
+        .summary-box { margin-top: 20px; background: #2c3e50; color: white; padding: 20px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .total-item { display: flex; justify-content: space-between; border-bottom: 1px solid #555; padding-bottom: 5px; margin-bottom: 5px; }
+        .profit-text { color: #2ecc71; font-size: 24px; font-weight: bold; }
+        .cash-text { color: #f1c40f; font-weight: bold; font-size: 18px; }
+        .fee-text { color: #ff7675; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Poppo Agency Cash Manager</h2>
+    
+    <div class="setup-row">
+        <div class="input-group">
+            <label>Total IDs:</label>
+            <input type="number" id="num_ids" value="1" oninput="generateRows()">
+        </div>
+        <div class="input-group">
+            <label>Level %:</label>
+            <select id="agency_level" onchange="calculateAll()">
+                <option value="4">4%</option>
+                <option value="8" selected>8%</option>
+                <option value="12">12%</option>
+                <option value="16">16%</option>
+                <option value="20">20%</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Coin Rate:</label>
+            <input type="number" id="coin_rate" value="0.0289" step="0.0001" oninput="calculateAll()">
+        </div>
+        <div class="input-group">
+            <label>Fixed Salary:</label>
+            <input type="number" id="fixed_salary" value="8500" oninput="calculateAll()">
+        </div>
+        <div class="input-group">
+            <label>Withdraw %:</label>
+            <input type="number" id="withdraw_fee" value="2.47" step="0.01" oninput="calculateAll()">
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID No.</th>
+                    <th>Investment</th>
+                    <th>Return (70%)</th>
+                    <th>PK Bonus</th>
+                    <th>Live Reward</th>
+                    <th>Net Points</th>
+                </tr>
+            </thead>
+            <tbody id="id_table_body"></tbody>
+        </table>
+    </div>
+
+    <div class="summary-box">
+        <div>
+            <div class="total-item"><span>Total Investment:</span> <span id="grand_inv">0</span></div>
+            <div class="total-item"><span>Total Salary:</span> <span id="grand_salary">0</span></div>
+            <div class="total-item"><span>Total Points (Before Fee):</span> <span id="total_pre_fee">0</span></div>
+            <div class="total-item" class="fee-text"><span>Withdraw Fee (2.47%):</span> <span id="total_fee_amt" class="fee-text">0</span></div>
+        </div>
+        <div>
+            <div class="total-item" style="border:none;">
+                <span style="font-size:16px;">Final Net Points:</span> 
+                <span id="final_net_points" style="font-weight:bold; color:#2ecc71; font-size:20px;">0</span>
+            </div>
+            <hr style="border: 0.5px solid #555;">
+            <div class="total-item" style="border:none; margin-top:10px;">
+                <span style="font-size:18px; color:#f1c40f;">Final Cash Amount:</span> 
+                <span id="grand_cash" class="profit-text" style="color:#f1c40f;">0</span>
+            </div>
+            <p style="font-size: 11px; color: #aaa; text-align: right;">(Points × Rate ${document.getElementById('coin_rate')?.value || 0.0289})</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateRows() {
+    let n = document.getElementById('num_ids').value;
+    let tbody = document.getElementById('id_table_body');
+    tbody.innerHTML = '';
+
+    for (let i = 1; i <= n; i++) {
+        let row = `
+            <tr class="id-row">
+                <td>ID ${i}</td>
+                <td><input type="number" class="inv table-input" value="60000" oninput="syncRow(this, 'inv')"></td>
+                <td><input type="number" class="ret table-input" value="42000" oninput="syncRow(this, 'ret')"></td>
+                <td><input type="number" class="pk table-input" value="12000" oninput="calculateAll()"></td>
+                <td><input type="number" class="live table-input" value="10000" oninput="calculateAll()"></td>
+                <td class="row-points" style="font-weight:bold; color:#1a73e8;">0</td>
+            </tr>`;
+        tbody.innerHTML += row;
+    }
+    calculateAll();
+}
+
+function syncRow(input, type) {
+    let tr = input.closest('tr');
+    let invField = tr.querySelector('.inv');
+    let retField = tr.querySelector('.ret');
+    if (type === 'inv') {
+        retField.value = Math.round(invField.value * 0.70);
+    } else {
+        invField.value = Math.round(retField.value / 0.70);
+    }
+    calculateAll();
+}
+
+function calculateAll() {
+    let rows = document.querySelectorAll('.id-row');
+    let level = parseFloat(document.getElementById('agency_level').value);
+    let rate = parseFloat(document.getElementById('coin_rate').value) || 0;
+    let feeRate = parseFloat(document.getElementById('withdraw_fee').value) / 100;
+    let totalFixedSalary = parseFloat(document.getElementById('fixed_salary').value) || 0;
+    
+    let gInv = 0, gRawBack = 0, gComm = 0;
+
+    rows.forEach(row => {
+        let inv = parseFloat(row.querySelector('.inv').value) || 0;
+        let ret = parseFloat(row.querySelector('.ret').value) || 0;
+        let pk = parseFloat(row.querySelector('.pk').value) || 0;
+        let live = parseFloat(row.querySelector('.live').value) || 0;
+
+        let agencyComm = (ret * level) / 100;
+        let pointsBack = ret + pk + live + agencyComm;
+        
+        row.querySelector('.row-points').innerText = Math.round(pointsBack).toLocaleString();
+
+        gInv += inv;
+        gRawBack += (ret + pk + live);
+        gComm += agencyComm;
+    });
+
+    let totalPointsBeforeFee = gRawBack + gComm + totalFixedSalary;
+    let totalFeeAmt = totalPointsBeforeFee * feeRate;
+    let finalNetPoints = totalPointsBeforeFee - totalFeeAmt - gInv;
+    
+    // Convert Net Points to Cash
+    let finalCash = finalNetPoints * rate;
+
+    document.getElementById('grand_inv').innerText = Math.round(gInv).toLocaleString();
+    document.getElementById('grand_salary').innerText = totalFixedSalary.toLocaleString();
+    document.getElementById('total_pre_fee').innerText = Math.round(totalPointsBeforeFee).toLocaleString();
+    document.getElementById('total_fee_amt').innerText = "-" + Math.round(totalFeeAmt).toLocaleString();
+    document.getElementById('final_net_points').innerText = Math.round(finalNetPoints).toLocaleString();
+    
+    // Final Cash display
+    document.getElementById('grand_cash').innerText = finalCash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+generateRows();
+</script>
+
+</body>
+</html>
